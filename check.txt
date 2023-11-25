@@ -1,0 +1,6 @@
+2011-11-7,Expense,Food,70.00,USD
+2011-9-8,Expense,Food,908.00,HUF
+1011-12-7,Income,Food,1000.00,USD
+2011-11-11,Income,Food,1000.00,USD
+2011-11-12,Income,Party,90.00,HUF
+1998-9-10,Expense,Scholarship,100.00,USD
