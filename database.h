@@ -15,10 +15,6 @@ void InitializeDatabase(Database* db)
     }
 }
 
-void InitializeKeyValueStructure(KeyValueStructure *kd)
-{
-    
-}
 
 void AddEntryToDb(Database *db, const Entry *new_entry);
 int SearchCategory(const char* category, Database *db);
@@ -195,9 +191,63 @@ void DisplayTotalStatistics(const Database *db)
     printf("\nThe overall balance is: %d", total_income-total_expense);
 }
 
-void DisplayMostExpensiveCategory(const Database* db)
+void InitializeHashMap(Hashmap *map_category)
 {
-    
+    map_category->num_of_entries = 0;
+    map_category->capacity = 5;
+    map_category->all_entries = (KeyValueStructure*)malloc(map_category->capacity*sizeof(KeyValueStructure));
+    if (map_category->all_entries == NULL)
+    {
+        printf("Failed to initialize data structure for categories");
+        exit(1);
+    }
+}
+
+int IndexKeySearch(char *key, Hashmap *map_category)
+{
+    for (int i = 0; i < map_category->num_of_entries;i++)
+    {
+        if (strcmp(key, map_category->all_entries[i].key) == 0)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+void LoadHashMap(Hashmap *map_category, Database *db)
+{
+    int j = 0;
+    for (int i = 0; i < db->num_of_entries;i++)
+    {
+        if (map_category->num_of_entries == map_category->capacity)
+        {
+            size_t new_capacity = map_category->num_of_entries > 0 ? map_category->capacity * 2 : 1;
+            KeyValueStructure *new_allEntries = realloc(map_category->all_entries, new_capacity * sizeof(KeyValueStructure));
+            if (new_allEntries == NULL) {
+                printf("Failed to reallocate memory for new entries of capacity Hashmap");
+                return;
+            }
+            map_category->all_entries = new_allEntries;
+            map_category->capacity = new_capacity;
+        }
+        else if (map_category->num_of_entries != map_category->capacity && db->all_entries[i].type == EXPENSE)
+        {
+            int index = IndexKeySearch(db->all_entries[i].category, map_category);
+            if (index != -1 && strcmp(map_category->all_entries[index].currency, db->all_entries[i].currency) == 0)
+            {
+                map_category->all_entries[index].value += db->all_entries[i].amount;
+            }
+            else
+            {
+                strcpy(map_category->all_entries[j].key, db->all_entries[i].category);
+                strcpy(map_category->all_entries[j].currency, db->all_entries[i].currency);
+                map_category->all_entries[j].value = db->all_entries[i].amount;
+                j++;
+                map_category->num_of_entries++;
+            }
+        }
+    }
 }
 
 void DisplayStatisticsForPeriod(const Database* db, int startYear, int startMonth, int startDay, int endYear, int endMonth, int endDay);

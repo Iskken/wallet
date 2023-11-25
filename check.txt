@@ -4,3 +4,4 @@
 2011-11-11,Income,Food,1000.00,USD
 2011-11-12,Income,Party,90.00,HUF
 1998-9-10,Expense,Scholarship,100.00,USD
+2011-11-19,Expense,Food,10.00,USD

@@ -29,10 +29,15 @@ typedef struct Database{
     size_t old_num_of_entries;
 } Database;
 
-typedef struct{
-    char *key;
-    char *currency;
+typedef struct KeyValueStructure{
+    char key[20];
+    char currency[4];
     int value;
 }KeyValueStructure;
 
+typedef struct{
+    KeyValueStructure *all_entries;
+    size_t num_of_entries;
+    size_t capacity;
+}Hashmap;
 #endif
