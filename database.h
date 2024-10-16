@@ -62,7 +62,7 @@ void LoadDatabase(Database* db, const char* filename)
 
 void DisplayMenu()
 {
-    printf("1. Add new entry\n2. Create new category\n3. Display total statistics\n4. Display statistics for a specific time period\n5. Save database\n 6. Exit\n\n");
+    printf("1. Add new entry\n2. Create new category\n3. Display total statistics\n4. Display statistics for a specific time period\n5. Save database\n 0. Exit\n\n");
 }
 
 void AddEntryToDb(Database *db, const Entry *new_entry) {
@@ -81,8 +81,9 @@ void AddEntryToDb(Database *db, const Entry *new_entry) {
     db->num_of_entries++; // increment as we add a new entry
 }
 
-void SaveDatabase(Database* db, const char* filename)
+void SaveDatabase(Database* db, const char* filename, int *saved)
 {
+    if (*saved == 1) return;
     FILE *fp = fopen(filename, "a");
     int old = db->old_num_of_entries;
     int new = db->num_of_entries;
@@ -102,17 +103,19 @@ void SaveDatabase(Database* db, const char* filename)
         fprintf(fp, ",%s\n", db->all_entries[old].currency);
         old++;
     }
+    *saved = 1;
 }
 
-void SaveToCategoryDatabase(char *new_category, const char *filename)
+void SaveToCategoryDatabase(char *new_category, long budget_limit, const char *filename)
 {
     FILE *fp = fopen(filename, "a");
     fprintf(fp, "%s", new_category);
+    fprintf(fp, "- %d", budget_limit);
     fprintf(fp, "\n");
     fclose(fp);
 }
 
-void AddEntry(Database *db, const char *filename) //add the new entry into "txt" file
+void AddEntry(Database *db,  int *saved, Hashmap *cat) //add the new entry into "txt" file
 {
     Entry input;
     type_t option;
@@ -133,8 +136,22 @@ void AddEntry(Database *db, const char *filename) //add the new entry into "txt"
         scanf("%d", &select);
         if (select)
         {
-            strcpy(input.category, try_category); //DO NOT FORGET to add the else statement to handle the user's "NO" case
-            SaveToCategoryDatabase(input.category, "category.txt");
+            strcpy(input.category, try_category);
+
+            printf("Would you like to set up a budget limit for this particular category?");
+            scanf("%d", &select);
+            if (select)
+            {
+                scanf("%d", &cat->all_entries[cat->num_of_entries].budget_limit);
+                SaveToCategoryDatabase(input.category,cat->all_entries[cat->num_of_entries].budget_limit, "category.txt");
+            }
+            SaveToCategoryDatabase(input.category,cat->all_entries[cat->num_of_entries].budget_limit, "category.txt");
+            cat->num_of_entries++;
+        }
+        else
+        {
+            printf("Entry not added. Please try again with a valid category.\n");
+            return; // Exit the function as the user selected "No"
         }
     }
     strcpy(input.category, try_category);
@@ -146,6 +163,8 @@ void AddEntry(Database *db, const char *filename) //add the new entry into "txt"
     scanf("%s", input.currency);
 
    AddEntryToDb(db, &input); //add the new entry into the database
+
+   saved = 0;
 }
 
 int SearchCategory(const char* category, Database *db)
@@ -157,7 +176,7 @@ int SearchCategory(const char* category, Database *db)
         if (strcmp(db->all_entries[i].category, category) == 0)
         {
             printf("\nFOUND");
-            return 1;
+            return i;
         }
     }
     return 0;
@@ -174,7 +193,7 @@ void CreateCategory()
     fclose(fp);
 }
 
-void DisplayTotalStatistics(const Database *db)
+void DisplayTotalStatistics(Hashmap *map_category, const Database *db)
 {
     int total_income = 0;
     int total_expense = 0;
@@ -186,9 +205,13 @@ void DisplayTotalStatistics(const Database *db)
         else
             total_expense += db->all_entries[i].amount;
     }
-
+    printf("Statistics for each category in all currencies:\n");
+    for (int i = 0; i < map_category->num_of_entries;i++)
+    {
+        printf("%s - %s - %d\n", map_category->all_entries[i].key, map_category->all_entries[i].currency, map_category->all_entries[i].value);
+    }
     printf("The total income is: %d\nThe total expenses are: %d", total_income, total_expense);
-    printf("\nThe overall balance is: %d", total_income-total_expense);
+    printf("\nThe overall balance is: %d\n", total_income-total_expense);
 }
 
 void InitializeHashMap(Hashmap *map_category)
@@ -250,7 +273,126 @@ void LoadHashMap(Hashmap *map_category, Database *db)
     }
 }
 
-void DisplayStatisticsForPeriod(const Database* db, int startYear, int startMonth, int startDay, int endYear, int endMonth, int endDay);
-void FreeDatabase(Database* db);
+void DisplayMostExpensiveCategory(Hashmap *map_category)
+{
+    if (map_category->num_of_entries == 0) {
+        printf("Hashmap is empty\n");
+        return;
+    }
+
+    int *check = (int *)malloc(map_category->num_of_entries * sizeof(int));
+    if (check == NULL) {
+        printf("Memory allocation failed\n");
+        exit(-1);
+    }
+
+    for (int i = 0; i < map_category->num_of_entries; i++) {
+        check[i] = 0;
+    }
+
+    for (int i = 0; i < map_category->num_of_entries; i++) {
+        if (!check[i]) {
+            int max = map_category->all_entries[i].value;
+            int max_index = i;
+
+            for (int j = i + 1; j < map_category->num_of_entries; j++) {
+                if (!check[j] && strcmp(map_category->all_entries[i].currency, map_category->all_entries[j].currency) == 0) {
+                    check[j] = 1;
+
+                    if (max < map_category->all_entries[j].value) {
+                        max = map_category->all_entries[j].value;
+                        max_index = j;
+                    }
+                }
+            }
+
+            printf("The most expensive category for currency %s is %s with expenses counting up to %d\n", 
+            map_category->all_entries[i].currency, map_category->all_entries[max_index].key, map_category->all_entries[max_index].value);
+        }
+    }
+
+    free(check);
+}
+
+int checkDate(Date *startDate, Date *endDate, Date *check) {
+    if (check->year < startDate->year || (check->year == startDate->year && check->month < startDate->month) || 
+        (check->year == startDate->year && check->month == startDate->month && check->day < startDate->day)) {
+        return -1;  // check date is before the start date
+    } else if (check->year > endDate->year || (check->year == endDate->year && check->month > endDate->month) || 
+               (check->year == endDate->year && check->month == endDate->month && check->day > endDate->day)) {
+        return 1;   // check date is after the end date
+    } else {
+        return 0;   // check date is within the specified period
+    }
+}
+
+void DisplayStatisticsForPeriod(const Database* db)
+{
+    printf("Please enter the start date in format YYYY-MM-DD: ");
+    Date start_date;
+    if (scanf("%d-%d-%d", &start_date.year, &start_date.month, &start_date.day) != 3) {
+        printf("Invalid input");
+        return;
+    }
+
+    printf("Please enter the end date in format YYYY-MM-DD: ");
+    Date end_date;
+    if (scanf("%d-%d-%d", &end_date.year, &end_date.month, &end_date.day) != 3) {
+        printf("Invalid input");
+        return;
+    }
+
+    printf("Statistics for each category within %d-%d-%d to %d-%d-%d\n",
+        start_date.year, start_date.month, start_date.day,
+        end_date.year, end_date.month, end_date.day);
+
+    int *check = (int *)malloc(db->num_of_entries * sizeof(int));
+    if (check == NULL) {
+        printf("Memory allocation failed");
+        return;
+    }
+
+    for (int i = 0; i < db->num_of_entries; i++) {
+        check[i] = 0;
+    }
+
+    for (int i = 0; i < db->num_of_entries; i++) {
+        if (check[i] || checkDate(&start_date, &end_date, &db->all_entries[i].date) != 0) continue;
+
+        int total_spent = 0;
+        int max_spent = 0;
+        int total_income = 0;
+        char currency[4]; 
+        char category[20]; 
+        strncpy(currency, db->all_entries[i].currency, sizeof(currency) - 1);
+        currency[sizeof(currency) - 1] = '\0'; 
+        strncpy(category, db->all_entries[i].category, sizeof(category) - 1);
+        category[sizeof(category) - 1] = '\0';
+
+        for (int j = i; j < db->num_of_entries; j++) {
+            if (check[j]) continue;
+
+            if (strcmp(currency, db->all_entries[j].currency) == 0 &&
+                strcmp(category, db->all_entries[j].category) == 0 &&
+                checkDate(&start_date, &end_date, &db->all_entries[j].date) == 0) {
+
+                if (db->all_entries[j].type == INCOME) {
+                    total_income += db->all_entries[j].amount;
+                } else {
+                    total_spent += db->all_entries[j].amount;
+                    if (db->all_entries[j].amount > max_spent) {
+                        max_spent = db->all_entries[j].amount;
+                    }
+                }
+                check[j] = 1;
+            }
+        }
+
+        printf("\nThe statistics for category %s in currency %s are:\nTotal Income:%d\nTotal Expense:%d\nMax Expense:%d\n",
+            category, currency, total_income, total_spent, max_spent);
+    }
+
+    free(check);
+}
 
 #endif

@@ -5,3 +5,11 @@
 2011-11-12,Income,Party,90.00,HUF
 1998-9-10,Expense,Scholarship,100.00,USD
 2011-11-19,Expense,Food,10.00,USD
+2011-11-10,Expense,Food,1000.00,USD
+1999-10-9,Expense,Taxi,100.00,HUF
+2010-10-10,Income,Food,1000.00,HUF
+1999-10-10,Income,Drinks,90.00,USD
+1999-10-10,Income,Drinks,90.00,HUF
+2013-10-10,Income,Food,10.00,USD
+2011-11-11,Income,Food,10.00,USD
+2001-1-1,Income,Salary,100.00,HUF

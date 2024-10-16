@@ -33,6 +33,7 @@ typedef struct KeyValueStructure{
     char key[20];
     char currency[4];
     int value;
+    long budget_limit;
 }KeyValueStructure;
 
 typedef struct{
@@ -40,4 +41,6 @@ typedef struct{
     size_t num_of_entries;
     size_t capacity;
 }Hashmap;
+
+
 #endif
